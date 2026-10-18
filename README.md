@@ -233,6 +233,17 @@ python benchmarks/benchmark_generation_mamba_simple.py --model-name "EleutherAI/
 python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba-2.8b" --prompt "My cat wrote all this CUDA code for a new language model and" --minp 0.05 --topk 0 --temperature 0.7 --repetition-penalty 1.2
 ```
 
+`uv run` command:
+
+```sh
+uv run --no-sync python benchmarks/benchmark_generation_mamba_simple.py \
+    --model-name "state-spaces/mamba-2.8b" \
+    --prompt "My cat wrote all this CUDA code for a new language model and" \
+    --topp 0.9 \
+    --temperature 0.7 \
+    --repetition-penalty 1.2
+```
+
 To test generation throughput with random prompts (e.g. large batch size):
 ``` sh
 python benchmarks/benchmark_generation_mamba_simple.py --model-name "state-spaces/mamba-2.8b" --batch 64
