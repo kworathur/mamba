@@ -218,6 +218,7 @@ def decode(
         start.record()
     scores, sequences = [], [input_ids]
     sequences_cat = input_ids
+    breakpoint()
     while not should_stop(sequences[-1], inference_params):
         logits = get_logits(sequences[-1], inference_params)
         if output_scores:
