@@ -223,6 +223,29 @@ The script [benchmarks/benchmark_generation_mamba_simple.py](benchmarks/benchmar
 
 Other configurable options include the top-p (nucleus sampling) probability, and the softmax temperature.
 
+
+## TPU commands
+
+Cloning project code onto a TPU:
+
+```bash
+gcloud compute tpus tpu-vm scp  ~/.ssh/id_rsa  keshav-tpu:~/.ssh  --zone  "us-south1-a"  --project "propane-facet-351921"
+gcloud compute tpus tpu-vm ssh --zone "us-south1-a" "keshav-tpu" --project "propane-facet-351921"
+```
+
+Installation on TPU:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+uv python install 3.12
+cd mamba
+uv venv
+source .venv/bin/activate
+uv pip install torch_tpu
+uv pip install --no-build-isolation .
+```
+
 ### Examples
 
 To test generation latency (e.g. batch size = 1) with different sampling strategies:
