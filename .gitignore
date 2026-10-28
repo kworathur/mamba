@@ -4,3 +4,7 @@ build/
 **.so
 *.hip
 *_hip.*
+infrastructure/terraform.tfvars
+infrastructure/.terraform
+infrastructure/terraform.tfstate
+infrastructure/terraform.tfstate.backup

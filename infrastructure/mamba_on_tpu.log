@@ -1,0 +1,49 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792952093.998488    5479 pjrt_api.cc:119] GetPjrtApi was found for TPU at /home/ubuntu/mamba/.venv/lib/python3.12/site-packages/libtpu/libtpu.so
+I0000 00:00:1792952095.169929    5479 device_rt.cc:166] PjRt runtime initialization deferred for tpu
+Successfully renamed PrivateUse1 backend to 'tpu'. Device: device(type='tpu')
+Registered Python module for 'tpu'.
+Device type: tpu, Device index: default
+Initializing TPU distributed runtime
+I0000 00:00:1792952095.173256    5479 libtpu_version.cc:63] Setting libtpu version to: 0.0.51
+I0000 00:00:1792952100.552746    5479 pjrt_api.cc:168] The PJRT plugin has PJRT API version 0.116. The framework PJRT API version is 0.116.
+I0000 00:00:1792952101.035663    5479 pjrt_c_api_client.cc:187] PjRtCApiClient created.
+/home/ubuntu/mamba/.venv/lib/python3.12/site-packages/einops/_backends.py:96: UserWarning: The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. Its .grad attribute won't be populated during autograd.backward(). If you indeed want the .grad field to be populated for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. If you access the non-leaf Tensor by mistake, make sure you access the leaf Tensor instead. See github.com/pytorch/pytorch/pull/30531 for more information. (Triggered internally at external/rules_python++pip+torch_tpu_pypi_2_14_0_314_torch/site-packages/torch/include/ATen/core/TensorBody.h:494.)
+  return x.reshape(shape)
+/home/ubuntu/mamba/mamba_ssm/modules/mamba_simple.py:186: UserWarning: The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. Its .grad attribute won't be populated during autograd.backward(). If you indeed want the .grad field to be populated for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. If you access the non-leaf Tensor by mistake, make sure you access the leaf Tensor instead. See github.com/pytorch/pytorch/pull/30531 for more information. (Triggered internally at external/rules_python++pip+torch_tpu_pypi_2_14_0_314_torch/site-packages/torch/include/ATen/core/TensorBody.h:494.)
+  B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
+/home/ubuntu/mamba/mamba_ssm/modules/mamba_simple.py:187: UserWarning: The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. Its .grad attribute won't be populated during autograd.backward(). If you indeed want the .grad field to be populated for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. If you access the non-leaf Tensor by mistake, make sure you access the leaf Tensor instead. See github.com/pytorch/pytorch/pull/30531 for more information. (Triggered internally at external/rules_python++pip+torch_tpu_pypi_2_14_0_314_torch/site-packages/torch/include/ATen/core/TensorBody.h:494.)
+  C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
+Traceback (most recent call last):
+  File "/home/ubuntu/mamba/tests/test_tpu_execution.py", line 22, in <module>
+    test_tpu_execution()
+  File "/home/ubuntu/mamba/tests/test_tpu_execution.py", line 18, in test_tpu_execution
+    y = model(x)
+        ^^^^^^^^
+  File "/home/ubuntu/mamba/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1783, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/mamba/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1794, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/mamba/mamba_ssm/modules/mamba_simple.py", line 189, in forward
+    y = selective_scan_fn(
+        ^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/mamba/mamba_ssm/ops/selective_scan_interface.py", line 124, in selective_scan_fn
+    return SelectiveScanFn.apply(u, delta, A, B, C, D, z, delta_bias, delta_softplus, return_last_state)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/mamba/mamba_ssm/ops/selective_scan_interface.py", line 39, in forward
+    _check_selective_scan_cuda()
+  File "/home/ubuntu/mamba/mamba_ssm/ops/selective_scan_interface.py", line 28, in _check_selective_scan_cuda
+    raise RuntimeError(
+RuntimeError: selective_scan_cuda is not installed. To use Mamba-1, reinstall with:
+  MAMBA_KEEP_CUDA_BUILD=TRUE pip install mamba-ssm --no-build-isolation
+I0000 00:00:1792952101.054917    5644 compilation_cache_utils.cc:218] Tier-3 compilation cache root directory: 
+I0000 00:00:1792952101.054948    5644 tier2_compilation_cache.cc:80] Tier-2 compilation cache is disabled for world size 1.
+I0000 00:00:1792952101.054953    5644 tier3_compilation_cache.cc:50] Backup compilation for tier-3 cache read is disabled as tier-3 cache is disabled.
+I0000 00:00:1792952102.286209    5479 compilation_cache.cc:356] Compilation cache evicted.
+I0000 00:00:1792952102.286242    5479 compilation_cache.cc:203] CompilationCache final stats: num_cache_reqs=7
+num_cache_hits=0 {0.0%}
+num_compilations=7
+peak_compilation_memory_bytes=unknown
+
