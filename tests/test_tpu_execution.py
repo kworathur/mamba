@@ -28,7 +28,7 @@ with torch.no_grad():
     inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
     # warm-up
     for i in range(length):
-            model(x_t[:, i: i +1, :], inference_params)
+            model(x[:, i: i +1, :], inference_params)
     
     torch.accelerator.synchronize()
 
@@ -39,8 +39,9 @@ with torch.no_grad():
         ],
         experimental_config=TpuProfilerConfig(
             run_dir=Path(log_dir),
-            host_tracer_level=2,
-            device_tracer_level=1
+            host_tracer_level=1,
+            device_tracer_level=1,
+            python_tracer_level=0
         ),
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
     ) as prof:
@@ -48,7 +49,7 @@ with torch.no_grad():
             inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
             with torch.profiler.record_function("mamba_forward_linear"):
                 for i in range(length):
-                    model(x_t[:, i:i + 1, :], inference_params)
+                    model(x[:, i:i + 1, :], inference_params)
                 torch.accelerator.synchronize()
             prof.step()
 
