@@ -14,7 +14,6 @@ seed = 42
 torch.manual_seed(seed)
 
 with torch.no_grad():
-
     batch, length, dim = 2, 64, 16
     x = torch.randn(batch, length, dim).to("tpu")
     model = Mamba(
@@ -26,11 +25,11 @@ with torch.no_grad():
         use_fast_path=False,
         layer_idx=0).to("tpu")
     inference_params = InferenceParams(max_seqlen=64, max_batch_size=batch, seqlen_offset=1)
-
     # warm-up
     for i in range(5):
             x_t = x[:,i,:]
             model(x_t[:, None, :], inference_params)
+    
     torch.accelerator.synchronize()
 
     with torch.profiler.profile(
@@ -46,13 +45,13 @@ with torch.no_grad():
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
     ) as prof:
         for _ in range(10):
+            inference_params = InferenceParams(max_seqlen=64, max_batch_size=batch, seqlen_offset=1)
             with torch.profiler.record_function("mamba_linear_forward"):
                 for i in range(length):
                     x_t = x[:,i,:]
                     model(x_t[:, None, :], inference_params)
                 torch.accelerator.synchronize()
-                prof.setup()
-                del inference_params.key_value_memory_dict[0]
+                prof.step()
 
     _, final_hidden = inference_params.key_value_memory_dict[0]
     assert final_hidden.shape == (batch, length, dim, 16)
