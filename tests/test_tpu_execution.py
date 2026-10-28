@@ -4,8 +4,11 @@ Test that Mamba PyTorch code runs natively on TPU with minimal modifications
 
 import torch
 from mamba_ssm import Mamba
+from mamba_ssm.utils.generation import InferenceParams
+seed = 42
 
 def test_tpu_execution():
+    torch.manual_seed(seed)
     batch, length, dim = 2, 64, 16
     x = torch.randn(batch, length, dim).to("tpu")
     model = Mamba(
@@ -13,7 +16,13 @@ def test_tpu_execution():
         d_model=dim, # Model dimension d_model
         d_state=16,  # SSM state expansion factor
         d_conv=4,    # Local convolution width
-        expand=2,    # Block expansion factor
-    ).to("tpu")
-    y = model(x)
-    assert y.shape == x.shape
+        expand=2,
+        use_fast_path=False,
+        layer_idx=0).to("tpu")
+    inference_params = InferenceParams(max_seqlen=64, max_batch_size=batch, seqlen_offset=1)
+    for i in range(length):
+        model(x[:,i,:], inference_params)
+
+    _, final_hidden = inference_params.key_value_memory_dict[0]
+    assert final_hidden.shape == (batch, length, dim, 16)
+    
