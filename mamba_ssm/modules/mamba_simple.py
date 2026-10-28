@@ -12,20 +12,19 @@ from einops import rearrange, repeat
 
 from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn
 
-try:
-    from causal_conv1d import causal_conv1d_fn, causal_conv1d_update
-except ImportError:
-    causal_conv1d_fn, causal_conv1d_update = None, None
+causal_conv1d_fn, causal_conv1d_update = None, None
+selective_state_update = None
+RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
 
-try:
-    from mamba_ssm.ops.triton.selective_state_update import selective_state_update
-except ImportError:
-    selective_state_update = None
-
-try:
-    from mamba_ssm.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
-except ImportError:
-    RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
+if torch.cuda.is_available():
+    try:
+        from mamba_ssm.ops.triton.selective_state_update import (
+            selective_state_update,
+        )
+        from causal_conv1d import causal_conv1d_fn, causal_conv1d_update
+        from mamba_ssm.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
+    except ImportError:
+        pass
 
 
 class Mamba(nn.Module):
@@ -186,6 +185,7 @@ class Mamba(nn.Module):
             B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
             C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
             assert self.activation in ["silu", "swish"]
+            # This kernel requires CUDA and is not compatible with TPU
             y = selective_scan_fn(
                 x,
                 dt,
@@ -198,6 +198,7 @@ class Mamba(nn.Module):
                 delta_softplus=True,
                 return_last_state=ssm_state is not None,
             )
+       
             if ssm_state is not None:
                 y, last_state = y
                 ssm_state.copy_(last_state)
@@ -206,6 +207,9 @@ class Mamba(nn.Module):
         return out
 
     def step(self, hidden_states, conv_state, ssm_state):
+        """
+        hidden state: (B, L, D), where L = 1
+        """
         dtype = hidden_states.dtype
         assert hidden_states.shape[1] == 1, "Only support decoding with 1 token at a time for now"
         xz = self.in_proj(hidden_states.squeeze(1))  # (B 2D)
@@ -240,11 +244,12 @@ class Mamba(nn.Module):
             dt = F.softplus(dt + self.dt_proj.bias.to(dtype=dt.dtype))
             dA = torch.exp(torch.einsum("bd,dn->bdn", dt, A))
             dB = torch.einsum("bd,bn->bdn", dt, B)
+            # equations 2a and 2b from paper, where internal SSM state has a fixed size
             ssm_state.copy_(ssm_state * dA + rearrange(x, "b d -> b d 1") * dB)
             y = torch.einsum("bdn,bn->bd", ssm_state.to(dtype), C)
             y = y + self.D.to(dtype) * x
             y = y * self.act(z)  # (B D)
-        else:
+        else: 
             y = selective_state_update(
                 ssm_state, x, dt, A, B, C, self.D, z=z, dt_bias=self.dt_proj.bias, dt_softplus=True
             )
