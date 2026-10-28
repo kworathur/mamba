@@ -1,5 +1,6 @@
 """
-Test that Mamba PyTorch code runs natively on TPU with minimal modifications
+Test that Mamba PyTorch code runs natively on TPU with minimal modifications and 
+profile a naive forward pass of a single mamba block.
 """
 from pathlib import Path
 import torch
@@ -14,7 +15,7 @@ seed = 42
 torch.manual_seed(seed)
 
 with torch.no_grad():
-    batch, length, dim = 2, 64, 16
+    batch, length, dim = 2, 128, 16
     x = torch.randn(batch, length, dim).to("tpu")
     model = Mamba(
         # This module uses roughly 3 * expand * d_model^2 parameters
@@ -24,7 +25,7 @@ with torch.no_grad():
         expand=2,
         use_fast_path=False,
         layer_idx=0).to("tpu")
-    inference_params = InferenceParams(max_seqlen=64, max_batch_size=batch, seqlen_offset=1)
+    inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
     # warm-up
     for i in range(5):
             x_t = x[:,i,:]
@@ -45,13 +46,12 @@ with torch.no_grad():
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
     ) as prof:
         for _ in range(10):
-            inference_params = InferenceParams(max_seqlen=64, max_batch_size=batch, seqlen_offset=1)
-            with torch.profiler.record_function("mamba_linear_forward"):
+            inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
+            with torch.profiler.record_function("mamba_forward_linear"):
                 for i in range(length):
                     x_t = x[:,i,:]
                     model(x_t[:, None, :], inference_params)
-                torch.accelerator.synchronize()
-                prof.step()
+            prof.step()
 
     _, final_hidden = inference_params.key_value_memory_dict[0]
     assert final_hidden.shape == (batch, dim * 2, dim)

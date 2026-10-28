@@ -1,8 +1,8 @@
 # Provision one v5e chip (spot VM) for experiments and debugging
 provider "google-beta" {
-  project     = "${var.project_id}"
-  region      = "${var.region}"
-  zone = "${var.zone}"
+  project = var.project_id
+  region  = var.region
+  zone    = var.zone
 }
 
 data "google_tpu_v2_runtime_versions" "available" {
@@ -16,22 +16,29 @@ data "google_tpu_v2_accelerator_types" "available" {
 resource "google_tpu_v2_vm" "tpu" {
   provider = google-beta
 
-  name = "keshav-tpu"
+  name        = "keshav-tpu"
   description = "Test TPU for vLLM experiments."
 
-  runtime_version  = "v2-alpha-tpuv5-lite"
+  runtime_version = "v2-alpha-tpuv5-lite"
 
   accelerator_config {
     type     = "V5LITE_POD"
     topology = "1x1"
   }
   metadata = {
-	ssh-keys = "keshavworathur_gmail_com:${file("~/.ssh/tpu_key.pub")}"
+
+    startup-script = <<-EOT
+      #!/bin/bash
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      source $HOME/.local/bin/env
+      uv python install 3.12
+      echo "Startup script completed successfully at $(date)" > /var/log/startup-status.log
+    EOT
   }
 
   scheduling_config {
     preemptible = true
-    spot = true
+    spot        = true
   }
 
   network_config {
@@ -51,7 +58,7 @@ resource "google_tpu_v2_vm" "tpu" {
   }
 
   data_disks {
-    source_disk = google_compute_disk.disk.id                                                      
+    source_disk = google_compute_disk.disk.id
     mode        = "READ_ONLY"
   }
 
@@ -63,28 +70,28 @@ resource "google_compute_subnetwork" "subnet" {
 
   name          = "tpu-subnet"
   ip_cidr_range = "10.0.0.0/16"
-  region        = "${var.region}"
+  region        = var.region
   network       = google_compute_network.network.id
 }
 
 resource "google_compute_network" "network" {
   provider = google-beta
 
-  name                    = "tpu-net"                                                            
+  name                    = "tpu-net"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_firewall" "allow_ssh" {
-  provider  = google-beta                                                                        
+  provider  = google-beta
   name      = "tpu-allow-ssh"
-  network   = google_compute_network.network.id                                                  
+  network   = google_compute_network.network.id
   direction = "INGRESS"
 
   allow {
     protocol = "tcp"
     ports    = ["22"]
   }
-  source_ranges = [var.client_ip] 
+  source_ranges = [var.client_ip]
 }
 
 resource "google_service_account" "sa" {
@@ -95,16 +102,16 @@ resource "google_service_account" "sa" {
 }
 
 resource "google_project_iam_member" "tpu_admin_binding" {
-  project = "${var.project_id}"
-  role = "roles/tpu.admin"
-  member = "serviceAccount:${google_service_account.sa.email}"
+  project = var.project_id
+  role    = "roles/tpu.admin"
+  member  = "serviceAccount:${google_service_account.sa.email}"
 }
 
 # prevent unexpected costs from VMs left running by accident
 resource "google_cloud_scheduler_job" "tpu_deletion_job" {
-  name = "delete-${google_tpu_v2_vm.tpu.name}-job"
-  project = "${var.project_id}"
-  region = "${var.region}"
+  name        = "delete-${google_tpu_v2_vm.tpu.name}-job"
+  project     = var.project_id
+  region      = var.region
   description = "Deletes spot TPU instance ${google_tpu_v2_vm.tpu.name} after time limit"
   schedule    = "* */4 * * *" # Runs every 4 hours
   time_zone   = "UTC"
@@ -127,17 +134,17 @@ resource "google_cloud_scheduler_job" "tpu_deletion_job" {
 }
 
 
-resource "google_compute_disk" "disk" {                                                          
+resource "google_compute_disk" "disk" {
   provider = google-beta
 
-  name  = "tpu-disk"                                                                             
+  name  = "tpu-disk"
   image = "debian-cloud/debian-12"
-  size  = 10                                                                                     
+  size  = 10
   type  = "pd-ssd"
-  zone  = "${var.zone}"
+  zone  = var.zone
 }
 # Wait after service account creation to limit eventual consistency errors.                    
 resource "time_sleep" "wait_60_seconds" {
-  depends_on = [google_service_account.sa]
+  depends_on      = [google_service_account.sa]
   create_duration = "60s"
 }
