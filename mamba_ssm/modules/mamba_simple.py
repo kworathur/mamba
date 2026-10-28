@@ -10,7 +10,6 @@ from torch import Tensor
 
 from einops import rearrange, repeat
 
-from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn
 
 causal_conv1d_fn, causal_conv1d_update = None, None
 selective_state_update = None
@@ -18,6 +17,7 @@ RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
 
 if torch.cuda.is_available():
     try:
+        from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn
         from mamba_ssm.ops.triton.selective_state_update import (
             selective_state_update,
         )
