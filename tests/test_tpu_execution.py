@@ -27,7 +27,7 @@ with torch.no_grad():
         layer_idx=0).to("tpu")
     inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
     # warm-up
-    for i in range(5):
+    for i in range(length):
             x_t = x[:,i,:]
             model(x_t[:, None, :], inference_params)
     
