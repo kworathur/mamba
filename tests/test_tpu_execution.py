@@ -54,4 +54,4 @@ with torch.no_grad():
                 prof.step()
 
     _, final_hidden = inference_params.key_value_memory_dict[0]
-    assert final_hidden.shape == (batch, length, dim, 16)
+    assert final_hidden.shape == (batch, dim * 2, dim)
