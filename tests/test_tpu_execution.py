@@ -9,7 +9,7 @@ seed = 42
 
 
 torch.manual_seed(seed)
-batch, length, dim = 2, 64, 16
+batch, length, dim = 2, 128, 16
 x = torch.randn(batch, length, dim).to("tpu")
 model = Mamba(
     # This module uses roughly 3 * expand * d_model^2 parameters
@@ -19,12 +19,13 @@ model = Mamba(
     expand=2,
     use_fast_path=False,
     layer_idx=0).to("tpu")
-inference_params = InferenceParams(max_seqlen=64, max_batch_size=batch, seqlen_offset=1)
+inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
 for i in range(length):
     x_t = x[:,i,:]
     model(x_t[:, None, :], inference_params)
 
 _, final_hidden = inference_params.key_value_memory_dict[0]
-assert final_hidden.shape == (batch, length, dim, 16)
+print(final_hidden.shape)
+assert final_hidden.shape == (batch, 2 * dim, dim)
 
 
