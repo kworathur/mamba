@@ -28,8 +28,7 @@ with torch.no_grad():
     inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
     # warm-up
     for i in range(length):
-            x_t = x[:,i,:]
-            model(x_t[:, None, :], inference_params)
+            model(x_t[:, i: i +1, :], inference_params)
     
     torch.accelerator.synchronize()
 
@@ -49,8 +48,8 @@ with torch.no_grad():
             inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
             with torch.profiler.record_function("mamba_forward_linear"):
                 for i in range(length):
-                    x_t = x[:,i,:]
-                    model(x_t[:, None, :], inference_params)
+                    model(x_t[:, i:i + 1, :], inference_params)
+                torch.accelerator.synchronize()
             prof.step()
 
     _, final_hidden = inference_params.key_value_memory_dict[0]
