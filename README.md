@@ -236,9 +236,7 @@ gcloud compute tpus tpu-vm ssh --zone "us-south1-a" "keshav-tpu" --project "prop
 Installation on TPU:
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
-uv python install 3.12
+git clone git@github.com:kworathur/mamba.git
 cd mamba
 uv venv
 source .venv/bin/activate
