@@ -40,8 +40,8 @@ with torch.no_grad():
         ],
         experimental_config=TpuProfilerConfig(
             run_dir=Path(log_dir),
-            host_tracer_level=1,
-            device_tracer_level=1,
+            host_tracer_level=2,
+            device_tracer_level=2,
             python_tracer_level=0
         ),
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
