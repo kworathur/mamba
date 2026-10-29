@@ -15,7 +15,7 @@ seed = 42
 torch.manual_seed(seed)
 
 with torch.no_grad():
-    batch, length, dim = 2, 64, 16
+    batch, length, dim = 32, 64, 16
     x = torch.randn(batch, length, dim).to("tpu")
     model = Mamba(
         # This module uses roughly 3 * expand * d_model^2 parameters
