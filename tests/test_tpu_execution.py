@@ -15,7 +15,7 @@ seed = 42
 torch.manual_seed(seed)
 
 with torch.no_grad():
-    batch, length, dim = 32, 64, 16
+    batch, length, dim = 32, 128, 16
     x = torch.randn(batch, length, dim).to("tpu")
     model = Mamba(
         # This module uses roughly 3 * expand * d_model^2 parameters
@@ -32,6 +32,7 @@ with torch.no_grad():
     
     torch.accelerator.synchronize()
 
+    inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)        
     with torch.profiler.profile(
         activities=[
             torch.profiler.ProfilerActivity.CPU,
@@ -45,13 +46,10 @@ with torch.no_grad():
         ),
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
     ) as prof:
-        for _ in range(10):
-            inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
-            with torch.profiler.record_function("mamba_forward_linear"):
-                for i in range(length):
-                    model(x[:, i:i + 1, :], inference_params)
-                torch.accelerator.synchronize()
-            prof.step()
+        for i in range(length):
+            with torch.profiler.record_function(f"mamba_encode_{i}"):
+                output = model(x[:, i:i + 1, :], inference_params)
+        torch.accelerator.synchronize()
 
     _, final_hidden = inference_params.key_value_memory_dict[0]
     assert final_hidden.shape == (batch, dim * 2, dim)
