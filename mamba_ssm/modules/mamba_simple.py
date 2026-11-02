@@ -204,7 +204,7 @@ class Mamba(nn.Module):
                 running_prod = running_prod * dA[:, i, :, :]
 
             y = torch.einsum("bdn,bln->bdl", h_t, C)
-            y = y + self.D.to(dtype) * x
+            y = y + self.D.to(hidden_states.dtype).view(1, -1, 1) * x
             y = y * self.act(z)
        
             if ssm_state is not None:
