@@ -192,19 +192,34 @@ class Mamba(nn.Module):
             dB = torch.einsum("bld,bln->bldn", dt, B)
 
             # running product of all the input dependent A matrices
-            running_prod = torch.ones(batch, self.d_inner, self.d_state, device=hidden_states.device, 
-                dtype=hidden_states.dtype)
-            h_t = torch.zeros(batch, self.d_inner, self.d_state, device=hidden_states.device, 
-                dtype=hidden_states.dtype)
-            for i in range(seqlen - 1, -1, -1):
-                # dB: (b, d, n), x: (b, d) -> term: (b, d, n)
-                dB_x = dB[:, i, :, :] * x[:, :, i].unsqueeze(-1)
-                h_t = h_t + torch.einsum('bdn,bdn->bdn', running_prod, dB_x)
-                running_prod = running_prod * dA[:, i, :, :]
+           intermediate_states = []
 
-            y = torch.einsum("bdn,bln->bdl", h_t, C)
+            for t in range(seqlen):
+                running_prod = torch.ones(
+                    batch, self.d_inner, self.d_state,
+                    device=hidden_states.device,
+                    dtype=hidden_states.dtype,
+                )
+                h_t = torch.zeros_like(running_prod)
+
+                # Compute the expanded recurrence for timestep t
+                for i in range(t, -1, -1):
+                    dB_x = dB[:, i, :, :] * x[:, :, i].unsqueeze(-1)
+
+                    h_t = h_t + running_prod * dB_x
+                    running_prod = running_prod * dA[:, i, :, :]
+
+                intermediate_states.append(h_t)
+
+            # (B, L, D, N)
+            h_all = torch.stack(intermediate_states, dim=1)
+
+            # Multiply each hidden state by its corresponding C vector
+            y = torch.einsum("bldn,bln->bdl", h_all, C)
+
             y = y + self.D.to(hidden_states.dtype).view(1, -1, 1) * x
             y = y * self.act(z)
+
        
             if ssm_state is not None:
                 y, last_state = y
