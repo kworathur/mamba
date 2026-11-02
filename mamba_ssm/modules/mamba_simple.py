@@ -201,7 +201,7 @@ class Mamba(nn.Module):
             # implement the recurrent
             for t in range(seqlen):
                 h = dA[:, t, :, :] * h + dB[:, t, :, :] * x[:, :, t].unsqueeze(-1)
-                intermediate_states.append(h_t)
+                intermediate_states.append(h)
 
             # (B, L, D, N)
             h_all = torch.stack(intermediate_states, dim=1)
