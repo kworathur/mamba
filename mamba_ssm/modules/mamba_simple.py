@@ -181,22 +181,22 @@ class Mamba(nn.Module):
             x_dbl = self.x_proj(rearrange(x, "b d l -> (b l) d"))  # (bl d)
             dt, B, C = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
             dt = self.dt_proj.weight @ dt.t()
-            dt = rearrange(dt, "d (b l) -> b d l", l=seqlen) # dt is just a scalar for each channel
-            B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
-            C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous() # C is a (B, N, L) tensor
+            dt = rearrange(dt, "d (b l) -> b l d", l=seqlen) # dt is just a scalar for each channel
+            B = rearrange(B, "(b l) dstate -> b l dstate", l=seqlen).contiguous()
+            C = rearrange(C, "(b l) dstate -> b l dstate", l=seqlen).contiguous() # C is a (B, N, L) tensor
             
             assert self.activation in ["silu", "swish"]
 
             dt = F.softplus(dt + self.dt_proj.bias.to(dtype=dt.dtype))
-            dA = torch.exp(torch.einsum("bdl,dn->bdnl", dt, A))
-            dB = torch.einsum("bdl,bnl->bdnl", dt, B)
+            dA = torch.exp(torch.einsum("bld,dn->bldn", dt, A))
+            dB = torch.einsum("bld,bln->bldn", dt, B)
 
             # running product of all the input dependent A matrices
             running_prod = torch.ones(batch, self.d_inner, self.d_state)
             h_t = torch.zeros(batch, self.d_inner, self.d_state)
             for i in range(seqlen - 1, -1, -1):
-                h_t += running_prod @ (db[:,:,:,i] @ x[:, :, i])
-                running_prod = running_prod @ dA[:,: , :, i]
+                h_t += running_prod @ (db[:,i, :,:] @ x[:, :, i])
+                running_prod = running_prod @ dA[:, i, :, :]
 
             y = torch.einsum("bdnls,bnl->bdl", h_t, C)
             y = y + self.D.to(dtype) * x
