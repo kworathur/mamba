@@ -191,24 +191,16 @@ class Mamba(nn.Module):
             dA = torch.exp(torch.einsum("bld,dn->bldn", dt, A))
             dB = torch.einsum("bld,bln->bldn", dt, B)
 
-            # running product of all the input dependent A matrices
-           intermediate_states = []
-
+            # current hidden state
+            h = torch.zeros(
+                batch, self.d_inner, self.d_state,
+                device=x.device,
+                dtype=dA.dtype,
+            )
+            intermediate_states = []
+            # implement the recurrent
             for t in range(seqlen):
-                running_prod = torch.ones(
-                    batch, self.d_inner, self.d_state,
-                    device=hidden_states.device,
-                    dtype=hidden_states.dtype,
-                )
-                h_t = torch.zeros_like(running_prod)
-
-                # Compute the expanded recurrence for timestep t
-                for i in range(t, -1, -1):
-                    dB_x = dB[:, i, :, :] * x[:, :, i].unsqueeze(-1)
-
-                    h_t = h_t + running_prod * dB_x
-                    running_prod = running_prod * dA[:, i, :, :]
-
+                h = dA[:, t, :, :] * h + dB[:, t, :, :] * x[:, :, t].unsqueeze(-1)
                 intermediate_states.append(h_t)
 
             # (B, L, D, N)
@@ -219,11 +211,10 @@ class Mamba(nn.Module):
 
             y = y + self.D.to(hidden_states.dtype).view(1, -1, 1) * x
             y = y * self.act(z)
-
        
-            if ssm_state is not None:
-                y, last_state = y
-                ssm_state.copy_(last_state)
+            # if ssm_state is not None:
+            #     y, last_state = y
+            #     ssm_state.copy_(last_state)
             
             y = rearrange(y, "b d l -> b l d")
             out = self.out_proj(y)
