@@ -8,3 +8,6 @@ infrastructure/terraform.tfvars
 infrastructure/.terraform
 infrastructure/terraform.tfstate
 infrastructure/terraform.tfstate.backup
+
+profiles/**/*.hlo_proto.pb
+profiles/

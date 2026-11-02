@@ -199,8 +199,7 @@ class Mamba(nn.Module):
             for i in range(seqlen - 1, -1, -1):
                 # dB: (b, d, n), x: (b, d) -> term: (b, d, n)
                 dB_x = dB[:, i, :, :] * x[:, :, i].unsqueeze(-1)
-                # running_prod: (b, d, n), dB_x: (b, d, n) -> contracted across state/inner dims as needed
-                h_t = h_t + torch.einsum('bdn,bdn->bdn', running_prod, dB_x) # or direct accumulation depending on your scan definition
+                h_t = h_t + torch.einsum('bdn,bdn->bdn', running_prod, dB_x)
                 running_prod = running_prod * dA[:, i, :, :]
 
             y = torch.einsum("bdn,bln->bdl", h_t, C)

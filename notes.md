@@ -16,4 +16,5 @@ tensor([[[-0.3105,  1.1016, -0.0789,  ..., -0.1013, -0.0513,  0.3782]]],
 1
 (Pdb) p hidden\_states.shape[2]
 
-
+1. For-loop to encode S6 input sequence => noticed poor mem bandwidth util.
+2.  
