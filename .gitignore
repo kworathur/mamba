@@ -10,4 +10,3 @@ infrastructure/terraform.tfstate
 infrastructure/terraform.tfstate.backup
 
 profiles/**/*.hlo_proto.pb
-profiles/
