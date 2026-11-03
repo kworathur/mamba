@@ -29,7 +29,7 @@ if torch.cuda.is_available():
 
 
 @torch.compile
-def opt_sequential_enc(seqlen, dA, h, dB, x, C, D, act, out_proj):
+def opt_sequential_enc(seqlen, dA, h, dB, x, C, D, z, act, out_proj):
     intermediate_states = []
     # implement the recurrent sequence encoding
     for t in range(seqlen):
@@ -223,7 +223,7 @@ class Mamba(nn.Module):
                 device=x.device,
                 dtype=hidden_states.dtype,
             )
-            opt_sequential_enc(seqlen, dA, h, dB, x, C, self.D, self.act, self.out_proj)
+            opt_sequential_enc(seqlen, dA, h, dB, x, C, self.D, z, self.act, self.out_proj)
         return out
 
     def step(self, hidden_states, conv_state, ssm_state):
