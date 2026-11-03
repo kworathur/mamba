@@ -10,6 +10,7 @@ from torch import Tensor
 
 from einops import rearrange, repeat, reduce
 
+torch._logging.set_logs(graph_code=True)
 
 causal_conv1d_fn, causal_conv1d_update = None, None
 selective_state_update = None
@@ -25,6 +26,31 @@ if torch.cuda.is_available():
         from mamba_ssm.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
     except ImportError:
         pass
+
+
+@torch.compile
+def opt_sequential_enc(seqlen, dA, h, dB, x, C, D, act, out_proj):
+    intermediate_states = []
+    # implement the recurrent sequence encoding
+    for t in range(seqlen):
+        h = dA[:, t, :, :] * h + dB[:, t, :, :] * x[:, :, t].unsqueeze(-1)
+        intermediate_states.append(h)
+
+    # (B, L, D, N)
+    h_all = torch.stack(intermediate_states, dim=1)
+
+    # Multiply each hidden state by its corresponding C vector
+    y = torch.einsum("bldn,bln->bdl", h_all, C)
+
+    y = y + D.to(hidden_states.dtype).view(1, -1, 1) * x
+    y = y * act(z)
+
+    # if ssm_state is not None:
+    #     y, last_state = y
+    #     ssm_state.copy_(last_state)
+    
+    y = rearrange(y, "b d l -> b l d")
+    out = out_proj(y)
 
 
 class Mamba(nn.Module):
@@ -197,27 +223,7 @@ class Mamba(nn.Module):
                 device=x.device,
                 dtype=dA.dtype,
             )
-            intermediate_states = []
-            # implement the recurrent sequence encoding
-            for t in range(seqlen):
-                h = dA[:, t, :, :] * h + dB[:, t, :, :] * x[:, :, t].unsqueeze(-1)
-                intermediate_states.append(h)
-
-            # (B, L, D, N)
-            h_all = torch.stack(intermediate_states, dim=1)
-
-            # Multiply each hidden state by its corresponding C vector
-            y = torch.einsum("bldn,bln->bdl", h_all, C)
-
-            y = y + self.D.to(hidden_states.dtype).view(1, -1, 1) * x
-            y = y * self.act(z)
-       
-            # if ssm_state is not None:
-            #     y, last_state = y
-            #     ssm_state.copy_(last_state)
-            
-            y = rearrange(y, "b d l -> b l d")
-            out = self.out_proj(y)
+            opt_sequential_enc(seqlen, dA, h, dB, x, C, self.D, self.act, self.out_proj)
         return out
 
     def step(self, hidden_states, conv_state, ssm_state):
