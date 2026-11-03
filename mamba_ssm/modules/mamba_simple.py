@@ -42,7 +42,7 @@ def opt_sequential_enc(seqlen, dA, h, dB, x, C, D, act, out_proj):
     # Multiply each hidden state by its corresponding C vector
     y = torch.einsum("bldn,bln->bdl", h_all, C)
 
-    y = y + D.to(hidden_states.dtype).view(1, -1, 1) * x
+    y = y + D.to(h.dtype).view(1, -1, 1) * x
     y = y * act(z)
 
     # if ssm_state is not None:
@@ -221,7 +221,7 @@ class Mamba(nn.Module):
             h = torch.zeros(
                 batch, self.d_inner, self.d_state,
                 device=x.device,
-                dtype=dA.dtype,
+                dtype=hidden_states.dtype,
             )
             opt_sequential_enc(seqlen, dA, h, dB, x, C, self.D, self.act, self.out_proj)
         return out
