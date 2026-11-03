@@ -49,7 +49,7 @@ with torch.no_grad():
         ),
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
     ) as prof:
-        with torch.profiler.record_function(f"mamba_encode_{i}"):
+        with torch.profiler.record_function(f"mamba_seq_encode"):
             for i in range(length):
                     y_t = model(x[:, i:i + 1, :], inference_params)
                     y_ts.append(y_t)
