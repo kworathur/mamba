@@ -198,7 +198,7 @@ class Mamba(nn.Module):
                 dtype=dA.dtype,
             )
             intermediate_states = []
-            # implement the recurrent
+            # implement the recurrent sequence encoding
             for t in range(seqlen):
                 h = dA[:, t, :, :] * h + dB[:, t, :, :] * x[:, :, t].unsqueeze(-1)
                 intermediate_states.append(h)

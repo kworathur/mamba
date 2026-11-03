@@ -20,17 +20,22 @@ with torch.no_grad():
     model = Mamba(
         # This module uses roughly 3 * expand * d_model^2 parameters
         d_model=dim, # Model dimension d_model
-        d_state=16,
+        d_state=16,  # SSM state expansion factor
         d_conv=4,    # Local convolution width
         expand=2,
         use_fast_path=False,
         layer_idx=0).to("tpu")
     inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)
-    
     # warm-up
-    model(x)
+    y_ts = []
+    for i in range(length):
+            y = model(x[:, i: i +1, :], inference_params)
+            y_ts.append(y)
+    y = torch.stack(y_ts, dim=1)
     torch.accelerator.synchronize()
 
+    y_ts = []
+    inference_params = InferenceParams(max_seqlen=length, max_batch_size=batch, seqlen_offset=1)        
     with torch.profiler.profile(
         activities=[
             torch.profiler.ProfilerActivity.CPU,
@@ -44,6 +49,9 @@ with torch.no_grad():
         ),
         on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir)
     ) as prof:
-        with torch.profiler.record_function(f"mamba_seq_encode"):
-            output = model(x)
-        torch.accelerator.synchronize()
+        with torch.profiler.record_function(f"mamba_encode_{i}"):
+            for i in range(length):
+                    y_t = model(x[:, i:i + 1, :], inference_params)
+                    y_ts.append(y_t)
+            y = torch.stack(y_ts, dim=1)
+            torch.accelerator.synchronize()
