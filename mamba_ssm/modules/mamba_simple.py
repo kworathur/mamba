@@ -51,6 +51,7 @@ def opt_sequential_enc(seqlen, dA, h, dB, x, C, D, z, act, out_proj):
     
     y = rearrange(y, "b d l -> b l d")
     out = out_proj(y)
+    return out
 
 
 class Mamba(nn.Module):
