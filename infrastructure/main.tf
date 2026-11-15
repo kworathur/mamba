@@ -25,18 +25,6 @@ resource "google_tpu_v2_vm" "tpu" {
     type     = "V5LITE_POD"
     topology = "1x1"
   }
-  metadata = {
-
-    startup-script = <<-EOT
-      #!/bin/bash
-      su ubuntu
-      curl -LsSf https://astral.sh/uv/install.sh | sh
-      source $HOME/.local/bin/env
-      uv python install 3.12
-      sudo apt install git-lfs
-      echo "Startup script completed successfully at $(date)" > /var/log/startup-status.log
-    EOT
-  }
 
   scheduling_config {
     preemptible = true

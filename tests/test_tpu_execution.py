@@ -7,7 +7,7 @@ import torch
 import torch_tpu
 from torch.tpu.profiler import TpuProfilerConfig
 from mamba_ssm import Mamba
-from mamba_ssm.utils.generation import InferenceParams
+import numpy as np
 
 log_dir = "./profiles/mamba"
 
@@ -55,3 +55,18 @@ with torch.no_grad():
                     y_ts.append(y_t)
             y = torch.stack(y_ts, dim=1)
             torch.accelerator.synchronize()
+    
+
+
+    np.savez(
+        "mamba_params.npz",
+        **{
+            name: param.detach().cpu().numpy()
+            for name, param in model.named_parameters()
+        }
+    )
+
+    np.save(
+        "mamba_input.npy",
+        torch_x.detach().cpu().numpy()
+    )
