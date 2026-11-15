@@ -28,7 +28,6 @@ if torch.cuda.is_available():
         pass
 
 
-@torch.compile
 def seq_encode_scan(seqlen, dA, h, dB, x, C, D, z, act, out_proj):
     intermediate_states = []
     # implement the recurrent sequence encoding
@@ -217,7 +216,7 @@ class Mamba(nn.Module):
             dt = F.softplus(dt + self.dt_proj.bias.to(dtype=dt.dtype))
             dA = torch.exp(torch.einsum("bld,dn->bldn", dt, A))
             dB = torch.einsum("bld,bln->bldn", dt, B)
-
+            breakpoint()
             # current hidden state
             h = torch.zeros(
                 batch, self.d_inner, self.d_state,
