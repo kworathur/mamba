@@ -1,5 +1,4 @@
 # Copyright (c) 2023, Tri Dao, Albert Gu.
-import pdb
 import math
 from typing import Optional
 
@@ -216,7 +215,6 @@ class Mamba(nn.Module):
             dt = F.softplus(dt + self.dt_proj.bias.to(dtype=dt.dtype))
             dA = torch.exp(torch.einsum("bld,dn->bldn", dt, A))
             dB = torch.einsum("bld,bln->bldn", dt, B)
-            breakpoint()
             # current hidden state
             h = torch.zeros(
                 batch, self.d_inner, self.d_state,

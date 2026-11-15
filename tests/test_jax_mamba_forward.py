@@ -1,7 +1,7 @@
 
 import jax
 import jax.numpy as jnp
-
+from mamba_ssm.modules.mamba_jax_equiv import mamba_forward
 # Use your actual profiling dimensions.
 batch = 32
 seqlen = 128
